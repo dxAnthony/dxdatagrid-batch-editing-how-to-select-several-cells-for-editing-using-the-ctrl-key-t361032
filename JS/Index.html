@@ -1,0 +1,102 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>How to select several cells by holding the CTRL key to edit them simultaneously</title>
+    <meta charset="utf-8" />
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <!--<![endif]-->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
+    <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/globalize/0.1.1/globalize.min.js"></script>
+    <script type="text/javascript" src="https://cdn3.devexpress.com/jslib/15.2.7/js/dx.webappjs.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/15.2.7/css/dx.common.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/15.2.7/css/dx.light.css" />
+    
+    <script type="text/javascript" src="data.js"></script>
+  
+</head>
+<body>
+    <div id="gridContainer"></div>
+
+    <script type="text/javascript">
+
+        var editCells = [];
+        $("#gridContainer").dxDataGrid({
+            onInitialized: function (e) {
+                grid = e.component;
+            },
+            dataSource: employees,
+            paging: {
+                enabled: false
+            },
+            editing: {
+                mode: "batch",
+                allowUpdating: true
+            },
+            columns: [
+                {
+                    dataField: "Prefix",
+                    caption: "Title",
+                    width: 70
+                },
+                "FirstName",
+                "LastName", {
+                    dataField: "Position",
+                    width: 170
+                }, {
+                    dataField: "StateID",
+                    caption: "State",
+                    width: 125,
+                    lookup: {
+                        dataSource: states,
+                        displayExpr: "Name",
+                        valueExpr: "ID"
+                    }
+                }
+            ],
+            onCellPrepared: function (e) {
+                if (e.rowType === "data" && $.inArray(e.rowIndex + ":" + e.columnIndex, editCells) >= 0) {
+                    e.cellElement.css("background-color", "lightblue");
+                }
+            },
+            onEditorPreparing: function (e) {
+                var grid = e.component;
+                if (e.parentType === "dataRow") {
+                    var oldOnValueChanged = e.editorOptions.onValueChanged;
+                    e.editorOptions.onValueChanged = function (e) {
+                        oldOnValueChanged.apply(this, arguments);
+                        for (var i = 0; i < editCells.length; i++) {
+                            var rowIndex = Number(editCells[i].split(":")[0]);
+                            var columnIndex = Number(editCells[i].split(":")[1]);
+                            grid.cellValue(rowIndex, columnIndex, e.value);
+                        }
+                    }
+                }
+            },
+            onCellClick: function (e) {
+                if (e.jQueryEvent.ctrlKey) {
+                    editCells.push(e.rowIndex + ":" + e.columnIndex);
+                }
+                else if (editCells.length) {
+                    editCells = [];
+                    e.component.repaint();
+                }
+            },
+            onContentReady: function (e) {
+                e.element.find(".dx-datagrid-save-button").click(function (e) {
+                    if (editCells.length)
+                        editCells = [];
+                });
+                e.element.find(".dx-datagrid-cancel-button ").click(function (e) {
+                    if (editCells.length)
+                        editCells = [];
+                });
+            }
+        });
+    </script>
+</body>
+</html>
